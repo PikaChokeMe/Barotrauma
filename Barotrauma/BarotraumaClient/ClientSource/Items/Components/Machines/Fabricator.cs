@@ -318,8 +318,12 @@ namespace Barotrauma.Items.Components
                         slotIndex++;
                     }
 
+                    // for each required item
+                    // for each prefab 
+
+
                     //highlight suitable ingredients in linked inventories
-                    foreach (Item item in availableIngredients)
+                    /*foreach (Item item in availableIngredients)
                     {
                         if (item.ParentInventory != inputContainer.Inventory && IsItemValidIngredient(item, requiredItem))
                         {
@@ -338,7 +342,7 @@ namespace Barotrauma.Items.Components
                                 }
                             }
                         }
-                    }
+                    }*/
 
                     if (slotIndex >= inputContainer.Capacity) { break; }
                     
