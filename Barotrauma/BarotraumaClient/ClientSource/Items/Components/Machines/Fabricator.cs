@@ -297,6 +297,7 @@ namespace Barotrauma.Items.Components
                 int slotIndex = 0;
 
                 var missingItems = new List<FabricationRecipe.RequiredItem>();
+                
                 foreach (FabricationRecipe.RequiredItem requiredItem in targetItem.RequiredItems)
                 {
                     for (int i = 0; i < requiredItem.Amount; i++)
@@ -308,6 +309,8 @@ namespace Barotrauma.Items.Components
                 {
                     missingItems.Remove(missingItems.FirstOrDefault(mi => mi.ItemPrefabs.Contains(item.prefab)));
                 }
+                var missingCounts = missingItems.GroupBy(missingItem => missingItem).ToDictionary(x => x.Key, x => x.Count());
+                missingItems = missingItems.Distinct().ToList();
 
                 var availableIngredients = GetAvailableIngredients();
 
@@ -318,30 +321,30 @@ namespace Barotrauma.Items.Components
                         slotIndex++;
                     }
 
-                    //highlight suitable ingredients in linked inventories
-                    foreach (Item item in availableIngredients)
-                    {
-                        if (item.ParentInventory != inputContainer.Inventory && IsItemValidIngredient(item, requiredItem))
-                        {
-                            int availableSlotIndex = item.ParentInventory.FindIndex(item);
-                            //slots are null if the inventory has never been displayed 
-                            //(linked item, but the UI is not set to be displayed at the same time)
-                            if (item.ParentInventory.visualSlots != null)
-                            {
-                                if (item.ParentInventory.visualSlots[availableSlotIndex].HighlightTimer <= 0.0f)
-                                {
-                                    item.ParentInventory.visualSlots[availableSlotIndex].ShowBorderHighlight(GUI.Style.Green, 0.5f, 0.5f, 0.2f);
-                                    if (slotIndex < inputContainer.Capacity)
+                    requiredItem.ItemPrefabs
+                        .Where(requiredPrefab => availableIngredients.ContainsKey(requiredPrefab.Identifier))
+                        .ForEach(requiredPrefab => {
+                            var availablePrefabs = availableIngredients[requiredPrefab.Identifier];
+
+                            availablePrefabs
+                                .Where(availablePrefab => availablePrefab.ParentInventory != inputContainer.Inventory)
+                                .Where(availablePrefab => availablePrefab.ParentInventory.visualSlots != null) //slots are null if the inventory has never been displayed 
+                                .ForEach(availablePrefab => {                                                  //(linked item, but the UI is not set to be displayed at the same time)
+                                    int availableSlotIndex = availablePrefab.ParentInventory.FindIndex(availablePrefab);
+
+                                    if (availablePrefab.ParentInventory.visualSlots[availableSlotIndex].HighlightTimer <= 0.0f)
                                     {
-                                        inputContainer.Inventory.visualSlots[slotIndex].ShowBorderHighlight(GUI.Style.Green, 0.5f, 0.5f, 0.2f);
+                                        availablePrefab.ParentInventory.visualSlots[availableSlotIndex].ShowBorderHighlight(GUI.Style.Green, 0.5f, 0.5f, 0.2f);
+                                        if (slotIndex < inputContainer.Capacity)
+                                        {
+                                            inputContainer.Inventory.visualSlots[slotIndex].ShowBorderHighlight(GUI.Style.Green, 0.5f, 0.5f, 0.2f);
+                                        }
                                     }
-                                }
-                            }
-                        }
-                    }
+                                });
+                        });
 
                     if (slotIndex >= inputContainer.Capacity) { break; }
-                    
+
                     var itemIcon = requiredItem.ItemPrefabs.First().InventoryIcon ?? requiredItem.ItemPrefabs.First().sprite;
                     Rectangle slotRect = inputContainer.Inventory.visualSlots[slotIndex].Rect;
                     itemIcon.Draw(
@@ -349,6 +352,16 @@ namespace Barotrauma.Items.Components
                         slotRect.Center.ToVector2(),
                         color: requiredItem.ItemPrefabs.First().InventoryIconColor * 0.3f,
                         scale: Math.Min(slotRect.Width / itemIcon.size.X, slotRect.Height / itemIcon.size.Y));
+
+                    
+                    if (missingCounts[requiredItem] > 1)
+                    {
+                        Vector2 stackCountPos = new Vector2(slotRect.Right, slotRect.Bottom);
+                        string stackCountText = "x" + missingCounts[requiredItem];
+                        stackCountPos -= GUI.SmallFont.MeasureString(stackCountText) + new Vector2(4, 2);
+                        GUI.SmallFont.DrawString(spriteBatch, stackCountText, stackCountPos + Vector2.One, Color.Black);
+                        GUI.SmallFont.DrawString(spriteBatch, stackCountText, stackCountPos, Color.White);
+                    }
 
                     if (requiredItem.UseCondition && requiredItem.MinCondition < 1.0f)
                     {
