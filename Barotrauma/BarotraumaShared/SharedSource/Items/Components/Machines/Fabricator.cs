@@ -21,8 +21,6 @@ namespace Barotrauma.Items.Components
 
         private bool hasPower;
 
-        private int updateDelay;
-
         private Character user;
 
         private ItemContainer inputContainer, outputContainer;
@@ -452,7 +450,7 @@ namespace Barotrauma.Items.Components
                     {
                         itemContainer = deconstructor.OutputContainer;
                     }
-                    
+
                     availableIngredients.AddRange(itemContainer.Inventory.AllItems);
                 }
             }
